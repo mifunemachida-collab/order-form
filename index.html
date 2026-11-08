@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ご注文フォーム</title>
+<style>
+  :root { --bg:#faf7f2; --card:#fff; --ink:#2b2b2b; --sub:#6b6b6b; --line:#e6e0d6; --accent:#9b2c2c; --line-green:#06c755; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Hiragino Sans","Noto Sans JP",sans-serif; line-height:1.6; }
+  header { background:var(--accent); color:#fff; padding:20px 16px; text-align:center; }
+  header h1 { margin:0; font-size:1.4rem; letter-spacing:.1em; }
+  header p { margin:4px 0 0; font-size:.9rem; opacity:.9; }
+  main { max-width:640px; margin:0 auto; padding:16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  h2 { font-size:1.05rem; margin:0 0 12px; border-left:4px solid var(--accent); padding-left:8px; }
+  .item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px dashed var(--line); }
+  .item:last-child { border-bottom:none; }
+  .item .name { font-weight:bold; }
+  .item .price { color:var(--sub); font-size:.9rem; }
+  .qty { display:flex; align-items:center; gap:6px; }
+  .qty button { width:36px; height:36px; border-radius:50%; border:1px solid var(--line); background:#fff; font-size:1.2rem; cursor:pointer; }
+  .qty span { min-width:24px; text-align:center; font-weight:bold; }
+  label { display:block; font-size:.9rem; margin:10px 0 4px; }
+  input, select, textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:6px; font-size:1rem; font-family:inherit; }
+  .radio { display:flex; gap:16px; }
+  .radio label { display:flex; align-items:center; gap:6px; margin:0; font-size:1rem; }
+  .radio input { width:auto; }
+  .total { font-size:1.2rem; font-weight:bold; text-align:right; }
+  .btn { display:block; width:100%; padding:14px; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; margin-top:8px; }
+  .btn-line { background:var(--line-green); color:#fff; }
+  .btn-sub { background:#fff; color:var(--ink); border:1px solid var(--line); font-size:.95rem; }
+  .note { font-size:.85rem; color:var(--sub); }
+  .err { color:var(--accent); font-size:.9rem; min-height:1.2em; }
+  footer { text-align:center; font-size:.85rem; color:var(--sub); padding:8px 16px 32px; }
+  footer a { color:inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="shopName"></h1>
+  <p>出前・お持ち帰り ご注文フォーム</p>
+</header>
+<main>
+  <section>
+    <h2>お品書き</h2>
+    <div id="menu"></div>
+    <p class="total">合計 <span id="total">0</span> 円（税込）</p>
+  </section>
+
+  <section>
+    <h2>お受け取り方法</h2>
+    <div class="radio">
+      <label><input type="radio" name="method" value="出前" checked> 出前</label>
+      <label><input type="radio" name="method" value="お持ち帰り"> お持ち帰り</label>
+    </div>
+    <label for="date">ご希望日</label>
+    <input type="date" id="date">
+    <label for="time">ご希望時間</label>
+    <select id="time"></select>
+  </section>
+
+  <section>
+    <h2>お客様情報</h2>
+    <label for="name">お名前</label>
+    <input id="name" autocomplete="name" placeholder="例：町田 太郎">
+    <label for="tel">電話番号</label>
+    <input id="tel" type="tel" autocomplete="tel" placeholder="例：090-1234-5678">
+    <div id="addrBox">
+      <label for="addr">お届け先住所</label>
+      <input id="addr" autocomplete="street-address" placeholder="例：町田市〇〇町1-2-3">
+    </div>
+    <label for="memo">ご要望（わさび抜き・アレルギーなど）</label>
+    <textarea id="memo" rows="3"></textarea>
+  </section>
+
+  <p class="err" id="err"></p>
+  <button class="btn btn-line" id="sendLine">LINEで注文を送る</button>
+  <button class="btn btn-sub" id="copy">注文内容をコピーする</button>
+  <p class="note">「LINEで注文を送る」を押すとLINEが開き、注文内容が入力された状態になります。そのまま送信してください。お店からの確認のご連絡をもってご注文確定となります。</p>
+</main>
+<footer>
+  お電話・FAXでもご注文いただけます<br>
+  TEL / FAX <a id="telLink"></a>（お電話は平日 9:00〜13:00）
+</footer>
+
+<script>
+/* ===== ここを書きかえてください ===== */
+const SHOP = {
+  name: "お店の名前",           // 店名
+  lineId: "@811ythfh",          // LINE公式アカウントID
+  tel: "042-725-3296",
+  times: ["11:00","11:30","12:00","12:30","13:00","17:00","17:30","18:00","18:30","19:00"]
+};
+// ※お品書きと値段は仮のものです。実際の内容に書きかえてください。
+const MENU = [
+  { name: "上にぎり（10貫）",   price: 2500 },
+  { name: "特上にぎり（10貫）", price: 3500 },
+  { name: "ちらし寿司",         price: 2000 },
+  { name: "鉄火巻",             price: 800 },
+  { name: "かっぱ巻",           price: 500 },
+  { name: "盛り合わせ（3人前）", price: 7500 }
+];
+/* ===================================== */
+
+const $ = id => document.getElementById(id);
+const qty = MENU.map(() => 0);
+document.title = SHOP.name + "｜ご注文フォーム";
+$("shopName").textContent = SHOP.name;
+$("telLink").textContent = SHOP.tel;
+$("telLink").href = "tel:" + SHOP.tel.replace(/-/g, "");
+SHOP.times.forEach(t => $("time").add(new Option(t, t)));
+
+const d = new Date(); d.setDate(d.getDate() + 1);
+const iso = x => new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+$("date").value = iso(d);
+$("date").min = iso(new Date());
+
+MENU.forEach((m, i) => {
+  const row = document.createElement("div");
+  row.className = "item";
+  row.innerHTML = `<div><div class="name"></div><div class="price">${m.price.toLocaleString()} 円</div></div>
+    <div class="qty"><button type="button" aria-label="減らす">−</button><span>0</span><button type="button" aria-label="増やす">＋</button></div>`;
+  row.querySelector(".name").textContent = m.name;
+  const [minus, plus] = row.querySelectorAll("button");
+  const span = row.querySelector("span");
+  minus.onclick = () => { if (qty[i] > 0) qty[i]--; span.textContent = qty[i]; updateTotal(); };
+  plus.onclick = () => { qty[i]++; span.textContent = qty[i]; updateTotal(); };
+  $("menu").appendChild(row);
+});
+
+function total() { return MENU.reduce((s, m, i) => s + m.price * qty[i], 0); }
+function updateTotal() { $("total").textContent = total().toLocaleString(); }
+function method() { return document.querySelector("input[name=method]:checked").value; }
+document.querySelectorAll("input[name=method]").forEach(r =>
+  r.onchange = () => { $("addrBox").style.display = method() === "出前" ? "" : "none"; });
+
+function buildText() {
+  const err = [];
+  if (total() === 0) err.push("ご注文の品を選んでください");
+  if (!$("name").value.trim()) err.push("お名前を入力してください");
+  if (!$("tel").value.trim()) err.push("電話番号を入力してください");
+  if (method() === "出前" && !$("addr").value.trim()) err.push("お届け先住所を入力してください");
+  if (!$("date").value) err.push("ご希望日を選んでください");
+  $("err").textContent = err.join("／");
+  if (err.length) return null;
+  const items = MENU.map((m, i) => qty[i] ? `・${m.name} × ${qty[i]}` : null).filter(Boolean).join("\n");
+  const [y, mo, da] = $("date").value.split("-");
+  return [
+    "【ご注文】",
+    items,
+    `合計：${total().toLocaleString()}円`,
+    "",
+    `受け取り：${method()}`,
+    `希望日時：${Number(mo)}月${Number(da)}日 ${$("time").value}`,
+    `お名前：${$("name").value.trim()}`,
+    `電話番号：${$("tel").value.trim()}`,
+    method() === "出前" ? `お届け先：${$("addr").value.trim()}` : null,
+    $("memo").value.trim() ? `ご要望：${$("memo").value.trim()}` : null
+  ].filter(x => x !== null).join("\n");
+}
+
+$("sendLine").onclick = () => {
+  const text = buildText();
+  if (!text) return;
+  location.href = `https://line.me/R/oaMessage/${encodeURIComponent(SHOP.lineId)}/?${encodeURIComponent(text)}`;
+};
+$("copy").onclick = async () => {
+  const text = buildText();
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); $("err").textContent = "注文内容をコピーしました"; }
+  catch (e) { prompt("下の文章をコピーしてください", text); }
+};
+</script>
+</body>
+</html>
